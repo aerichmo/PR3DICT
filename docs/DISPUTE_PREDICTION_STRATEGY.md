@@ -235,13 +235,17 @@ See [Appendix: Kelly Criterion](./APPENDIX_KELLY_CRITERION.md) for full derivati
 
 ## Next Steps
 
-1. **Build data pipeline** — Gamma API fetcher, store markets in Postgres
-2. **Build Tier 1 screener** — Fast LLM pass to flag ambiguous contracts
+1. ~~**Build data pipeline** — Gamma API fetcher, store markets~~ ✅ DONE
+   - `src/data/scanner.py` fetches from Gamma API
+   - `src/data/database.py` stores in SQLite
+   - Run: `python -m src.data.scanner --show-unanalyzed`
+
+2. **Build Tier 1 screener** — Fast LLM pass to flag ambiguous contracts ← NEXT
 3. **Build Tier 2 analyzer** — Extended thinking analysis with RAG
 4. **Backtest on historical disputes** — How well would we have predicted?
 5. **Paper trade** — Run live without real capital
 
 ---
 
-*Document Version: 0.3*  
+*Document Version: 0.4*  
 *Last Updated: 2026-01-22*
