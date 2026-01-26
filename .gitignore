@@ -22,3 +22,19 @@ logs/
 *.csv
 *.json
 !config/*.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Local partner-specific files (each partner creates their own)
+# Create a file named .gitignore.local with your personal ignores
+.gitignore.local
+local/
+
+# Personal notes/scratch (convention: prefix with your initials)
+# e.g., nate_notes.md, alex_scratch.py
+*_notes.md
+*_scratch.*
+*_local.*
