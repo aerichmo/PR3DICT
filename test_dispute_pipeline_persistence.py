@@ -103,10 +103,78 @@ async def test_persist_tier2_success(tmp_path: Path):
     result = await persist_tier2_result(db, "mkt-pipeline", payload, "sv1")
     assert result.status == "success"
     assert result.output_db_id is not None
+    assert result.normalization_applied is False
 
     async with db._connection.execute("SELECT COUNT(*) FROM analysis_outputs_t2") as cursor:
         count = (await cursor.fetchone())[0]
     assert count == 1
+    await db.close()
+
+
+@pytest.mark.asyncio
+async def test_persist_tier2_small_drift_is_normalized(tmp_path: Path):
+    db = MarketDatabase(db_path=tmp_path / "pipeline.db")
+    await db.connect()
+    await _seed_market(db)
+
+    payload = {
+        "p_dispute": 0.35,
+        "p_yes_final": 0.499,
+        "p_no_final": 0.451,
+        "p_invalid_final": 0.049,  # sum=0.999 -> normalize
+        "confidence": 0.73,
+        "resolution_source_risk": "medium",
+        "edge_cases": ["timezone boundary"],
+        "decision_path": "pre_dispute",
+        "no_trade_reason": None,
+        "assumptions": ["source remains online"],
+        "prompt_version": "t2.v1",
+        "model": "gpt-5",
+        "run_id": "tier2-run-normalized",
+    }
+    result = await persist_tier2_result(db, "mkt-pipeline", payload, "sv1")
+    assert result.status == "success"
+    assert result.output_db_id is not None
+    assert result.normalization_applied is True
+
+    async with db._connection.execute(
+        "SELECT p_yes_final, p_no_final, p_invalid_final FROM analysis_outputs_t2 WHERE id = ?",
+        (result.output_db_id,),
+    ) as cursor:
+        row = await cursor.fetchone()
+    assert row is not None
+    assert pytest.approx(sum(row), abs=1e-9) == 1.0
+    await db.close()
+
+
+@pytest.mark.asyncio
+async def test_persist_tier2_large_drift_is_invalid(tmp_path: Path):
+    db = MarketDatabase(db_path=tmp_path / "pipeline.db")
+    await db.connect()
+    await _seed_market(db)
+
+    payload = {
+        "p_dispute": 0.35,
+        "p_yes_final": 0.50,
+        "p_no_final": 0.45,
+        "p_invalid_final": 0.10,  # sum=1.05 -> invalid
+        "confidence": 0.73,
+        "resolution_source_risk": "medium",
+        "edge_cases": [],
+        "decision_path": "pre_dispute",
+        "no_trade_reason": None,
+        "assumptions": [],
+        "prompt_version": "t2.v1",
+        "model": "gpt-5",
+        "run_id": "tier2-run-large-drift",
+    }
+    result = await persist_tier2_result(db, "mkt-pipeline", payload, "sv1")
+    assert result.status == "invalid"
+    assert result.output_db_id is None
+
+    async with db._connection.execute("SELECT COUNT(*) FROM analysis_outputs_t2") as cursor:
+        count = (await cursor.fetchone())[0]
+    assert count == 0
     await db.close()
 
 

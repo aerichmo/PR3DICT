@@ -5,7 +5,9 @@ from uuid import uuid4
 
 from ...data.database import MarketDatabase
 from .tier1 import tier1_from_dict, validate_tier1_output
-from .tier2 import tier2_from_dict, validate_tier2_output
+from .tier2 import normalize_final_probabilities, tier2_from_dict, validate_tier2_output
+
+PROBABILITY_SUM_EPSILON = 0.01
 
 
 @dataclass
@@ -16,6 +18,7 @@ class PersistResult:
     output_db_id: Optional[int]
     run_id: str
     error_message: Optional[str] = None
+    normalization_applied: bool = False
 
 
 def _derive_run_fields(payload: Dict[str, Any], stage: str) -> tuple[str, str, str]:
@@ -99,9 +102,17 @@ async def persist_tier2_result(
 ) -> PersistResult:
     """Validate and persist Tier 2 output with deterministic run metadata."""
     run_id, model, prompt_version = _derive_run_fields(payload, "tier2")
+    normalization_applied = False
     try:
         output = tier2_from_dict(payload)
-        validate_tier2_output(output)
+        final_sum = output.p_yes_final + output.p_no_final + output.p_invalid_final
+        drift = abs(final_sum - 1.0)
+        if drift > PROBABILITY_SUM_EPSILON:
+            raise ValueError(f"final probability sum drift too large: {drift:.6f}")
+        if drift > 0.0:
+            output = normalize_final_probabilities(output)
+            normalization_applied = True
+        validate_tier2_output(output, tolerance=1e-9)
     except (KeyError, TypeError, ValueError) as exc:
         run_db_id = await db.save_analysis_run(
             market_id=market_id,
@@ -122,6 +133,7 @@ async def persist_tier2_result(
             output_db_id=None,
             run_id=run_id,
             error_message=str(exc),
+            normalization_applied=False,
         )
 
     run_db_id = await db.save_analysis_run(
@@ -155,4 +167,5 @@ async def persist_tier2_result(
         run_db_id=run_db_id,
         output_db_id=output_db_id,
         run_id=output.run_id,
+        normalization_applied=normalization_applied,
     )
