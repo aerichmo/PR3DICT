@@ -16,6 +16,12 @@ from .arbitrage_v1_plumbing import (
     snapshot_age_ms,
 )
 from .polymarket_arb_v1 import PolymarketArbV1Config, PolymarketArbitrageV1Strategy
+from .dependency_detector import (
+    DependencyAssessment,
+    DependencyDetector,
+    DependencyRelation,
+    DependencyVerifierPort,
+)
 from .market_making import MarketMakingStrategy, MarketMakingConfig, InventoryTracker
 from .market_rebalancing import MarketRebalancingStrategy, RebalancingConfig, RebalancingOpportunity
 
@@ -23,6 +29,7 @@ __all__ = [
     "TradingStrategy", "Signal",
     "ArbitrageStrategy", "CrossPlatformArbitrage",
     "PolymarketArbV1Config", "PolymarketArbitrageV1Strategy",
+    "DependencyAssessment", "DependencyDetector", "DependencyRelation", "DependencyVerifierPort",
     "ExecutablePricerPort", "RiskGatePort",
     "ComplementPricing",
     "ArbV1RiskConfig", "ArbV1RiskGate",

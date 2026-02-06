@@ -8,6 +8,7 @@ Last updated: 2026-02-04
 - M1 complete in branch lane: executable pricing, staleness checks, and risk-gate plumbing added in Python.
 - M2 in progress: opportunity engine ports and execution lifecycle state machine scaffolded.
 - M2 update: paired-leg entry contract now wired through engine execution path (paper + live fallback handling).
+- M2 update: dependency detection added as two-stage flow (deterministic narrowing + optional verifier hook).
 
 ## Purpose
 This is the single source of truth for Polymarket arbitrage planning and implementation decisions.
@@ -75,3 +76,7 @@ Any change to locked decisions requires:
 ### 2026-02-04 | DEC-003 | Resolution dependency boundary
 - Decision: Consume only `risk_multiplier` from resolution/adjudication thread in v1.
 - Why: Keep arb thread decoupled while allowing risk-aware sizing.
+
+### 2026-02-06 | DEC-004 | Combinatorial dependency detection approach
+- Decision: Use deterministic candidate narrowing first, then optional verifier hook for ambiguous relations.
+- Why: Deterministic-only is too brittle; LLM-only is too expensive/noisy for pair explosion.
